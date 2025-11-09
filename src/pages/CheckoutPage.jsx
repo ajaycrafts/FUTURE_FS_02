@@ -30,32 +30,21 @@ export default function CheckoutPage() {
     if (saved) {
       const parsed = JSON.parse(saved);
       setAddressList(parsed);
-      setSelectedAddress(parsed[0] || null);
+      if (parsed.length > 0) setSelectedAddress(parsed[0]);
     }
   }, []);
 
-  // ✅ Save address list to localStorage
+  // ✅ Update localStorage whenever address list changes
   const updateStorage = (list) => {
     localStorage.setItem("savedAddresses", JSON.stringify(list));
     setAddressList(list);
   };
 
-  // ✅ Add new address
+  // ✅ Add a new address
   const handleAddNewAddress = (e) => {
     e.preventDefault();
     if (Object.values(newAddress).some((v) => !v)) {
       alert("Please fill all fields!");
-      return;
-    }
-
-    if (
-      addressList.some(
-        (a) =>
-          a.address.toLowerCase() === newAddress.address.toLowerCase() &&
-          a.pincode === newAddress.pincode
-      )
-    ) {
-      alert("This address already exists!");
       return;
     }
 
@@ -73,17 +62,15 @@ export default function CheckoutPage() {
     setAddingNew(false);
   };
 
-  // ✅ Delete address
+  // ✅ Delete an address
   const handleDeleteAddress = (index) => {
     const updated = addressList.filter((_, i) => i !== index);
     updateStorage(updated);
-
-    if (updated.length === 0) setSelectedAddress(null);
-    else if (selectedAddress === addressList[index])
-      setSelectedAddress(updated[0]);
+    if (updated.length > 0) setSelectedAddress(updated[0]);
+    else setSelectedAddress(null);
   };
 
-  // ✅ Proceed to Payment
+  // ✅ Proceed to payment
   const handleContinue = () => {
     if (!selectedAddress) {
       alert("Please select an address before continuing.");
@@ -92,7 +79,7 @@ export default function CheckoutPage() {
     setStep(2);
   };
 
-  // ✅ Place Order
+  // ✅ Place the order
   const handleOrderSubmit = (e) => {
     e.preventDefault();
 
@@ -140,11 +127,10 @@ export default function CheckoutPage() {
 
     clearCart();
     setOrderPlaced(true);
-
     setTimeout(() => navigate("/order-success", { state: { order: orderData } }), 2000);
   };
 
-  // ✅ Order success message
+  // ✅ Order success UI
   if (orderPlaced) {
     return (
       <div className="p-6 text-center">
@@ -152,7 +138,8 @@ export default function CheckoutPage() {
           ✅ Order Placed Successfully!
         </h2>
         <p className="text-gray-700">
-          Thank you for shopping with <span className="text-purple-600 font-bold">MiniMartX</span>!<br />
+          Thank you for shopping with{" "}
+          <span className="text-purple-600 font-bold">MiniMartX</span>!<br />
           Redirecting you to the homepage...
         </p>
       </div>
@@ -168,9 +155,23 @@ export default function CheckoutPage() {
       {/* ✅ Step 1: Address Selection */}
       {step === 1 && (
         <div className="space-y-4">
+          {addressList.length === 0 && !addingNew && (
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">No saved addresses yet.</p>
+              <button
+                onClick={() => setAddingNew(true)}
+                className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition"
+              >
+                ➕ Add New Address
+              </button>
+            </div>
+          )}
+
           {addressList.length > 0 && !addingNew && (
             <>
-              <h2 className="text-lg font-semibold text-gray-800">Select a Saved Address:</h2>
+              <h2 className="text-lg font-semibold text-gray-800">
+                Select a Saved Address:
+              </h2>
               {addressList.map((addr, index) => (
                 <div
                   key={index}
@@ -185,7 +186,9 @@ export default function CheckoutPage() {
                     <p className="font-medium text-gray-900">{addr.name}</p>
                     <p>{addr.phone}</p>
                     <p>{addr.address}</p>
-                    <p>{addr.city}, {addr.state} - {addr.pincode}</p>
+                    <p>
+                      {addr.city}, {addr.state} - {addr.pincode}
+                    </p>
                   </div>
                   {selectedAddress === addr && (
                     <span className="text-purple-600 text-xl ml-2">✔️</span>
@@ -275,7 +278,6 @@ export default function CheckoutPage() {
             <option value="cod">Cash on Delivery</option>
           </select>
 
-          {/* Card Payment */}
           {paymentMethod === "card" && (
             <div className="space-y-3 p-4 border rounded-md bg-white">
               <input
@@ -327,7 +329,6 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* UPI */}
           {paymentMethod === "upi" && (
             <div className="p-4 border rounded-md bg-white">
               <input
@@ -341,7 +342,6 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* COD */}
           {paymentMethod === "cod" && (
             <div className="p-4 border rounded-md bg-white text-gray-700">
               💵 You can pay with cash, card, or UPI at the time of delivery.
@@ -349,7 +349,7 @@ export default function CheckoutPage() {
           )}
 
           <div className="flex justify-between items-center mt-6">
-            <p className="text-xl font-semibold">Total: ${total.toFixed(2)}</p>
+            <p className="text-xl font-semibold">Total: ₹{total.toFixed(2)}</p>
             <button
               type="submit"
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
