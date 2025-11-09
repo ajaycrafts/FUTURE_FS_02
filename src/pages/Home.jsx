@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Home() {
@@ -18,6 +18,39 @@ export default function Home() {
   const queryParams = new URLSearchParams(location.search);
   const searchTerm = queryParams.get("search")?.toLowerCase() || "";
 
+  // ✅ Wrap applyFilters in useCallback to make it dependency-safe
+  const applyFilters = useCallback(
+    (productList, search, category, sort) => {
+      if (!Array.isArray(productList)) return;
+      let result = [...productList];
+
+      if (search) {
+        result = result.filter(
+          (p) =>
+            p.title.toLowerCase().includes(search) ||
+            p.category.toLowerCase().includes(search)
+        );
+      }
+
+      if (category !== "All") {
+        result = result.filter(
+          (p) => p.category.toLowerCase() === category.toLowerCase()
+        );
+      }
+
+      if (sort === "priceLowHigh") {
+        result.sort((a, b) => a.price - b.price);
+      } else if (sort === "priceHighLow") {
+        result.sort((a, b) => b.price - a.price);
+      } else if (sort === "ratingHighLow") {
+        result.sort((a, b) => b.rating - a.rating);
+      }
+
+      setFilteredProducts(result);
+    },
+    []
+  );
+
   useEffect(() => {
     fetch("https://dummyjson.com/products?limit=100")
       .then((res) => res.json())
@@ -34,7 +67,7 @@ export default function Home() {
         applyFilters(productList, searchTerm, activeCategory, sortOption);
       })
       .catch((err) => console.error("Error fetching products:", err));
-  }, []);
+  }, [applyFilters, searchTerm, activeCategory, sortOption]);
 
   useEffect(() => {
     localStorage.setItem("activeCategory", activeCategory);
@@ -43,36 +76,7 @@ export default function Home() {
 
   useEffect(() => {
     applyFilters(products, searchTerm, activeCategory, sortOption);
-  }, [searchTerm, activeCategory, sortOption]);
-
-  const applyFilters = (productList, search, category, sort) => {
-    if (!Array.isArray(productList)) return;
-    let result = [...productList];
-
-    if (search) {
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(search) ||
-          p.category.toLowerCase().includes(search)
-      );
-    }
-
-    if (category !== "All") {
-      result = result.filter(
-        (p) => p.category.toLowerCase() === category.toLowerCase()
-      );
-    }
-
-    if (sort === "priceLowHigh") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sort === "priceHighLow") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sort === "ratingHighLow") {
-      result.sort((a, b) => b.rating - a.rating);
-    }
-
-    setFilteredProducts(result);
-  };
+  }, [products, searchTerm, activeCategory, sortOption, applyFilters]);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -148,6 +152,7 @@ export default function Home() {
     </div>
   );
 }
+
 
 
 
